@@ -12,6 +12,7 @@ typedef void (*fp) (FILE *);
 int ncommands = 0;
 fp cmdArray[BUFSIZE];
 char *tagArray[BUFSIZE];
+char *dscArray[BUFSIZE];
 int viewportOn = 0; // is viewport active?
 int bbx1, bby1, bbx2, bby2; // coordinates of viewport bounding box (real)
 int vpx1, vpy1, vpx2, vpy2; // coordinates of viewport (virtual)
@@ -387,57 +388,75 @@ void doViewportOff(FILE *stream) {
 void initFunctions() {
   tagArray[0] = "CR";
   cmdArray[0] = doCreate;
+  dscArray[0] = "Create new image with specified dimensions.\n W - image width\n H - image height\n";
 
   tagArray[1] = "SA";
   cmdArray[1] = doSave;
+  dscArray[1] = "Save current image to specified file.\n S - filename of output image\n";
 
   tagArray[2] = "CA";
   cmdArray[2] = doColorAllocate;
+  dscArray[2] = "Allocate a color with the specified R, G, and B components.\n R - red component (0-255)\n G - green component (0-255)\n B - blue component (0-255)\n";
 
   tagArray[3] = "PI";
   cmdArray[3] = doPixel;
+  dscArray[3] = "Draw a pixel.\n X - x coordinate of pixel\n Y - y coordinate of pixel\n C - pixel color\n";
 
   tagArray[4] = "LI";
   cmdArray[4] = doLine;
+  dscArray[4] = "Draw a line from (x1, y1) to (x2, y2).\n X1 - x1 coordinate\n Y1 - y1 coordinate\n X2 - x2 coordinate\n Y2 - y2 coordinate\n C - line color.\n";
 
   tagArray[5] = "RE";
   cmdArray[5] = doRectangle;
+  dscArray[5] = "Draw a rectangle from (x1, y1) to (x2, y2).\n X1 - x1 coordinate\n Y1 - y1 coordinate\n X2 - x2 coordinate\n Y2 - y2 coordinate\n C - rectangle color.\n";
 
   tagArray[6] = "RF";
   cmdArray[6] = doFilledRectangle;
-  
+  dscArray[6] = "Draw a filled rectangle from (x1, y1) to (x2, y2).\n X1 - x1 coordinate\n Y1 - y1 coordinate\n X2 - x2 coordinate\n Y2 - y2 coordinate\n C - rectangle color.\n";
+
   tagArray[7] = "ST";
   cmdArray[7] = doString;
+  dscArray[7] = "Draw a string.\n X - x coordinate of string\n Y - y coordinate of string\n C - string color\n S - string to be drawn.\n";
 
   tagArray[8] = "SU";
   cmdArray[8] = doStringUp;
-  
+  dscArray[8] = "Draw a string with vertical orientation.\n X - x coordinate of string\n Y - y coordinate of string\n C - string color\n S - string to be drawn.\n";
+
   tagArray[9] = "FI";
   cmdArray[9] = doFill;
+  dscArray[9] = "Fill a region with the specified color.\n X - x coordinate of seed point\n Y - y coordinate of seed point\n C - fill color.\n";
 
   tagArray[10] = "FB";
   cmdArray[10] = doFillToBorder;
+  dscArray[10] = "Fill to border.\n";
 
   tagArray[11] = "CI";
   cmdArray[11] = doCircle;
+  dscArray[11] = "Draw a circle.\n X - x coordinate of center\n Y - y coordinate of center\n R - circle radius\n C - circle color.\n";
 
   tagArray[12] = "AR";
   cmdArray[12] = doArc;
+  dscArray[12] = "Draw an arc.\n X - x coordinate of center\n Y - y coordinate of center\n W - width\n H - height\n A - start angle\n B - end angle\n C - arc color.\n";
 
   tagArray[13] = "AF";
   cmdArray[13] = doFilledArc;
+  dscArray[13] = "Draw a filled arc.\n X - x coordinate of center\n Y - y coordinate of center\n W - width\n H - height\n A - start angle\n B - end angle\n C - arc color\n S - style index.\n";
 
   tagArray[14] = "EF";
   cmdArray[14] = doFilledEllipse;
+  dscArray[14] = "Draw a filled ellipse.\n X - x coordinate of center\n Y - y coordinate of center\n W - width\n H - height\n C - ellipse color.\n";
 
   tagArray[15] = "VI";
   cmdArray[15] = doViewportOn;
+  dscArray[15] = "Enable viewport (all successive operations will use viewport coordinates).\n";
 
   tagArray[16] = "VO";
   cmdArray[16] = doViewportOff;
+  dscArray[16] = "Disable viewport (revert to image coordinates).\n";
 
   tagArray[17] = "LD";
   cmdArray[17] = doLoad;
+  dscArray[17] = "Load image from a file.\n S - filename of image to be read.";
 
   ncommands = 18;
 }
@@ -476,6 +495,31 @@ void gdMainLoop(FILE *stream) {
   }
 }
 
+void usage() {
+  fprintf(stderr, "gdcreate - create images from simple text-based commands\n\n");
+  fprintf(stderr, "Usage: gdcreate [-h] [-l] [input.txt]\n\n");
+  fprintf(stderr, "Read commands from file input.txt (or from standard input if no file is\n");
+  fprintf(stderr, "specified). Each command represents a graphical operation performed on an\n");
+  fprintf(stderr, "image in memory. The first command will typically be CR (create) to initialize\n");
+  fprintf(stderr, "the image to the desired dimensions, and the last command will typicall be SA\n");
+  fprintf(stderr, "(save) to write the image to a file. Use the '-l' option to print the list of all\n");
+  fprintf(stderr, "available commands with a short description for each.\n");
+  exit(1);
+}
+
+void listCommands() {
+  int i;
+  fprintf(stderr, "Each command starts with a two-letter code, followed by one or more arguments. The\n");
+  fprintf(stderr, "code and its arguments should all be on different, consecutive lines. An empty line\n");
+  fprintf(stderr, "terminates a command. The following is the list of currently available commands,\n");
+  fprintf(stderr, "followed by the arguments for each command.\n\n");
+
+  for (i = 0; i < ncommands; i++) {
+    fprintf(stderr, "%s - %s\n", tagArray[i], dscArray[i]);
+  }
+  exit(2);
+}
+
 int main(int argc, char *argv[]) {
   char *filename;
   FILE *input;
@@ -483,6 +527,12 @@ int main(int argc, char *argv[]) {
   initFunctions();
   // printf("Functions initialized.\n");
   if (argc == 2) {
+    if (!strcmp(argv[1], "-h")) {
+      usage();
+    }
+    if (!strcmp(argv[1], "-l")) {
+      listCommands();
+    }
     filename = argv[1];
     input = fopen(filename, "r");
     gdMainLoop(input);

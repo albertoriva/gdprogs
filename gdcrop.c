@@ -9,7 +9,7 @@ void check_args(int n, char *args[]) {
   if (n < 7) {
     fprintf(stderr, "%s - crop images.\n\n", args[0]);
     fprintf(stderr, "Usage: gdcrop src dest x y dx dy\n\n");
-    fprintf(stderr, "  src, dest: filenames of the source and destination images respectively.\n");
+    fprintf(stderr, "  src, dest: Filenames of the source and destination images respectively.\n");
     fprintf(stderr, "             The image format is automatically detected from the filename\n");
     fprintf(stderr, "             extension, that should be one of png, jpg, jpeg, gif (case insensitive).\n");
     fprintf(stderr, "  x, y:      Coordinates of the top-left corner of the rectangle to be cropped.\n");
