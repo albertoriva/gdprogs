@@ -30,7 +30,7 @@ gdImagePtr gdOpenByExt(char *filename) {
   ext = extension_of(filename);
   if (!strcasecmp(ext, "png")) {
     im_in = gdImageCreateFromPng(in);
-  } else if (!strcasecmp(ext, "jpg")) {
+  } else if (!strcasecmp(ext, "jpg") || !strcasecmp(ext, "jpeg")) {
     im_in = gdImageCreateFromJpeg(in);
   } else if (!strcasecmp(ext, "gif")) {
     im_in = gdImageCreateFromGif(in);
@@ -50,7 +50,7 @@ void gdSaveByExt(gdImagePtr im_out, char *filename) {
   ext = extension_of(filename);
   if (!strcasecmp(ext, "png")) {
     gdImagePng(im_out, out);
-  } else if (!strcasecmp(ext, "jpg")) {
+  } else if (!strcasecmp(ext, "jpg") || !strcasecmp(ext, "jpeg")) {
     gdImageJpeg(im_out, out, jpg_quality);
   } else if (!strcasecmp(ext, "gif")) {
     gdImageGif(im_out, out);
