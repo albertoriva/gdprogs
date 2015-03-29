@@ -8,6 +8,7 @@
 char *infile, *outfile;
 int x = 60, y = 60;
 int sizeonly = 1;
+int shortFormat = 0;
 float xscale = 0.0, yscale = 0.0, scale = 0.0;
 
 float is_perc(char *s) {
@@ -28,10 +29,13 @@ int is_dash(char *s) {
 
 void usage(char *progname) {
   fprintf(stderr, "Usage: %s [options] in.png <out.png> <x-dim> <y-dim>\n", progname);
-  fprintf(stderr, "\nWith a single argument, prints the X and Y dimensions of an existing image.\n");
+  fprintf(stderr, "\nWhen no output file is specified, prints the X and Y dimensions of an existing image, in the following format:\n");
+  fprintf(stderr, "  in.png width height ratio\n");
+  fprintf(stderr, "  With the -x option, the dimensions are printed in the form WxH (e.g., 640x400).\n");
   fprintf(stderr, "New dimensions can be specified as:\n");
   fprintf(stderr, "  an integer number;\n");
-  fprintf(stderr, "  a floating point number between 0 and 1 (used as scale factor);\n");
+  /* fprintf(stderr, "  a floating point number between 0 and 1 (used as scale factor);\n"); */
+  fprintf(stderr, "  a percentage in the range 0%% - 100%% (used as scale factor);\n");
   fprintf(stderr, "  '-' (new size will be computed using the same scale factor as the other coordinate).\n\n");
   fprintf(stderr, "Image file format is automatically determined from the file extension. Known extensions: png, PNG, jpg, JPG, gif, GIF.\n");
   fprintf(stderr, "Options:\n");
@@ -51,6 +55,8 @@ void parse_args(int argc, char *argv[]) {
       exit(0);
     } else if (!strcmp(arg, "-q")) {
       jpg_quality = atoi(argv[++i]);
+    } else if (!strcmp(arg, "-x")) {
+      shortFormat = 1;
     } else {
       switch (na) {
       case 1: 
@@ -171,7 +177,11 @@ int main(int argc, char *argv[]) {
   }
 
   if (sizeonly) {
-    printf("%s: %d %d %f\n", infile, im_in->sx, im_in->sy, (float)im_in->sx/im_in->sy);
+    if (shortFormat) {
+      printf("%dx%d\n", im_in->sx, im_in->sy);
+    } else {
+      printf("%s: %d %d %f\n", infile, im_in->sx, im_in->sy, (float)im_in->sx/im_in->sy);
+    }
     exit(0);
   } else {
     printf("Resizing %s (%d x %d) to %s (%d x %d)\n", infile, im_in->sx, im_in->sy, outfile, x, y);
