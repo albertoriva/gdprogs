@@ -11,3 +11,5 @@ gdresize | Change the size of an image
 gdcrop   | Extract a portion of an image
 gdcreate | Create images through meta-commands
 credits  | Add text over an image
+
+Calling each program with the **-h** argument produces a short usage message.
