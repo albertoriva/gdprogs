@@ -7,6 +7,7 @@
 
 #define BUFSIZE 1024
 char buffer[BUFSIZE];
+char cmdresult[BUFSIZE];
 
 typedef void (*fp) (FILE *);
 int ncommands = 0;
@@ -64,6 +65,21 @@ float getFloat(FILE *stream) {
   return strtof(buffer, NULL);  // TODO: error checking here
 }
 
+/* Font management */
+
+gdPoint fontSize(int f) {
+  // Returns the X and Y size of font `f' as a gdPoint
+  gdPoint s;
+  switch (f) {
+  case 0: s.x = 5; s.y = 8; break;
+  case 1: s.x = 6; s.y = 12; break;
+  case 2: s.x = 7; s.y = 13; break;
+  case 3: s.x = 8; s.y = 16; break;
+  case 4: s.x = 9; s.y = 15; break;
+  }
+  return s;
+}
+  
 /* Viewport management */
 
 int viewx(float x) {
@@ -98,74 +114,8 @@ int scaley(float y) {
   }
 }
 
-/* Commands:
-
-CR - create
-x
-y
-
-LD - load
-filename
-
-SA - save
-filename
-
-CA - color allocate
-red
-green
-blue
-
-CC - color closest
-red
-green
-blue
-
-CE - color exact
-red
-green
-blue
-
-CR - color resolve
-red
-green
-blue
-
-PI - set pixel
-x
-y
-c
-
-LI - line
-x1 
-y1
-x2
-y2
-c
-
-RE - rectangle
-x1 
-y1
-x2
-y2
-c
-
-RF - rectangle filled
-x1 
-y1
-x2
-y2
-c
-
-ST - string
-font
-x
-y
-c
-string
-
-*/
-
 /* Drawing functions */
+
 gdFontPtr getFont(int f) {
   switch (f) {
   case 0: return gdFontTiny; break;
@@ -178,8 +128,14 @@ gdFontPtr getFont(int f) {
 }
 
 int getColor(int idx) {
-  return colors[idx];
+  if (idx == -1) {
+    return gdStyled;
+  } else {
+    return colors[idx];
+  }
 }
+
+/* Commands */
 
 void doCreate(FILE *stream) {
   int x, y;
@@ -197,7 +153,7 @@ void doSave(FILE *stream) {
   getLine(stream); // read filename
   gdSaveByExt(image, buffer);
   gdImageDestroy(image);
-  printf("(image saved to %s) ", buffer);
+  //printf("(image saved to %s) ", buffer);
 }
 
 void doColorAllocate(FILE *stream) {
@@ -209,6 +165,7 @@ void doColorAllocate(FILE *stream) {
   idx = gdImageColorAllocate(image, r, g, b);
   colors[colorptr] = idx;
   colorptr++;
+  sprintf(cmdresult, "%d", idx);
 }
 
 void doPixel(FILE *stream) {
@@ -418,90 +375,144 @@ void doViewportOff(FILE *stream) {
   viewportOn = 0;
 }
 
+void doSetStyle(FILE *stream) {
+  int n, i, c;
+  int style[100];
+  
+  n = getNumber(stream);
+  for (i = 0; i < n; i++) {
+    c = getNumber(stream);
+    if (c == -1) {
+      c = gdTransparent;
+    }
+    style[i] = c;
+  }
+  gdImageSetStyle(image, style, n);
+}
+
+void doSetThickness(FILE *stream) {
+  int t;
+
+  t = getNumber(stream);
+  gdImageSetThickness(image, t);
+}
+
 /* Codes and functions */
 
 void initFunctions() {
-  tagArray[0] = "CR";
-  cmdArray[0] = doCreate;
-  dscArray[0] = "Create new image with specified dimensions.\n W - image width\n H - image height\n";
+  int idx = 0;
 
-  tagArray[1] = "SA";
-  cmdArray[1] = doSave;
-  dscArray[1] = "Save current image to specified file.\n S - filename of output image\n";
+  tagArray[idx] = "CR";
+  cmdArray[idx] = doCreate;
+  dscArray[idx] = "Create new image with specified dimensions.\n W - image width\n H - image height\n";
+  idx++;
 
-  tagArray[2] = "CA";
-  cmdArray[2] = doColorAllocate;
-  dscArray[2] = "Allocate a color with the specified R, G, and B components.\n R - red component (0-255)\n G - green component (0-255)\n B - blue component (0-255)\n";
+  tagArray[idx] = "SA";
+  cmdArray[idx] = doSave;
+  dscArray[idx] = "Save current image to specified file.\n S - filename of output image\n";
+  idx++;
 
-  tagArray[3] = "PI";
-  cmdArray[3] = doPixel;
-  dscArray[3] = "Draw a pixel.\n X - x coordinate of pixel\n Y - y coordinate of pixel\n C - pixel color\n";
+  tagArray[idx] = "CA";
+  cmdArray[idx] = doColorAllocate;
+  dscArray[idx] = "Allocate a color with the specified R, G, and B components.\n R - red component (0-255)\n G - green component (0-255)\n B - blue component (0-255)\n";
+  idx++;
 
-  tagArray[4] = "LI";
-  cmdArray[4] = doLine;
-  dscArray[4] = "Draw a line from (x1, y1) to (x2, y2).\n X1 - x1 coordinate\n Y1 - y1 coordinate\n X2 - x2 coordinate\n Y2 - y2 coordinate\n C - line color.\n";
+  tagArray[idx] = "PI";
+  cmdArray[idx] = doPixel;
+  dscArray[idx] = "Draw a pixel.\n X - x coordinate of pixel\n Y - y coordinate of pixel\n C - pixel color\n";
+  idx++;
 
-  tagArray[5] = "RE";
-  cmdArray[5] = doRectangle;
-  dscArray[5] = "Draw a rectangle from (x1, y1) to (x2, y2).\n X1 - x1 coordinate\n Y1 - y1 coordinate\n X2 - x2 coordinate\n Y2 - y2 coordinate\n C - rectangle color.\n";
+  tagArray[idx] = "LI";
+  cmdArray[idx] = doLine;
+  dscArray[idx] = "Draw a line from (x1, y1) to (x2, y2).\n X1 - x1 coordinate\n Y1 - y1 coordinate\n X2 - x2 coordinate\n Y2 - y2 coordinate\n C - line color.\n";
+  idx++;
 
-  tagArray[6] = "RF";
-  cmdArray[6] = doFilledRectangle;
-  dscArray[6] = "Draw a filled rectangle from (x1, y1) to (x2, y2).\n X1 - x1 coordinate\n Y1 - y1 coordinate\n X2 - x2 coordinate\n Y2 - y2 coordinate\n C - rectangle color.\n";
+  tagArray[idx] = "RE";
+  cmdArray[idx] = doRectangle;
+  dscArray[idx] = "Draw a rectangle from (x1, y1) to (x2, y2).\n X1 - x1 coordinate\n Y1 - y1 coordinate\n X2 - x2 coordinate\n Y2 - y2 coordinate\n C - rectangle color.\n";
+  idx++;
 
-  tagArray[7] = "ST";
-  cmdArray[7] = doString;
-  dscArray[7] = "Draw a string.\n X - x coordinate of string\n Y - y coordinate of string\n C - string color\n S - string to be drawn.\n";
+  tagArray[idx] = "RF";
+  cmdArray[idx] = doFilledRectangle;
+  dscArray[idx] = "Draw a filled rectangle from (x1, y1) to (x2, y2).\n X1 - x1 coordinate\n Y1 - y1 coordinate\n X2 - x2 coordinate\n Y2 - y2 coordinate\n C - rectangle color.\n";
+  idx++;
 
-  tagArray[8] = "SU";
-  cmdArray[8] = doStringUp;
-  dscArray[8] = "Draw a string with vertical orientation.\n X - x coordinate of string\n Y - y coordinate of string\n C - string color\n S - string to be drawn.\n";
+  tagArray[idx] = "ST";
+  cmdArray[idx] = doString;
+  dscArray[idx] = "Draw a string.\n X - x coordinate of string\n Y - y coordinate of string\n C - string color\n S - string to be drawn.\n";
+  idx++;
 
-  tagArray[9] = "PO";
-  cmdArray[9] = doPolygon;
-  dscArray[9] = "Draw a polygon with the specified vertices.\n N - number of points\n X1\n Y1 - coordinates of first point\n ...\n C - color\n";
+  tagArray[idx] = "SU";
+  cmdArray[idx] = doStringUp;
+  dscArray[idx] = "Draw a string with vertical orientation.\n X - x coordinate of string\n Y - y coordinate of string\n C - string color\n S - string to be drawn.\n";
+  idx++;
 
-  tagArray[10] = "PF";
-  cmdArray[10] = doFilledPolygon;
-  dscArray[10] = "Draw a filled polygon with the specified vertices.\n N - number of points\n X1\n Y1 - coordinates of first point\n ...\n C - color\n";
+  tagArray[idx] = "PO";
+  cmdArray[idx] = doPolygon;
+  dscArray[idx] = "Draw a polygon with the specified vertices.\n N - number of points\n X1\n Y1 - coordinates of first point\n ...\n C - color\n";
+  idx++;
 
-  tagArray[11] = "FI";
-  cmdArray[11] = doFill;
-  dscArray[11] = "Fill a region with the specified color.\n X - x coordinate of seed point\n Y - y coordinate of seed point\n C - fill color.\n";
+  tagArray[idx] = "PF";
+  cmdArray[idx] = doFilledPolygon;
+  dscArray[idx] = "Draw a filled polygon with the specified vertices.\n N - number of points\n X1\n Y1 - coordinates of first point\n ...\n C - color\n";
+  idx++;
 
-  tagArray[12] = "FB";
-  cmdArray[12] = doFillToBorder;
-  dscArray[12] = "Fill to border.\n";
+  tagArray[idx] = "FI";
+  cmdArray[idx] = doFill;
+  dscArray[idx] = "Fill a region with the specified color.\n X - x coordinate of seed point\n Y - y coordinate of seed point\n C - fill color.\n";
+  idx++;
 
-  tagArray[13] = "CI";
-  cmdArray[13] = doCircle;
-  dscArray[13] = "Draw a circle.\n X - x coordinate of center\n Y - y coordinate of center\n R - circle radius\n C - circle color.\n";
+  tagArray[idx] = "FB";
+  cmdArray[idx] = doFillToBorder;
+  dscArray[idx] = "Fill to border.\n X - x coordinate of seed point\n Y - y coordinate of seed point\n B - border color\n C - fill color.\n";
+  idx++;
 
-  tagArray[14] = "AR";
-  cmdArray[14] = doArc;
-  dscArray[14] = "Draw an arc.\n X - x coordinate of center\n Y - y coordinate of center\n W - width\n H - height\n A - start angle\n B - end angle\n C - arc color.\n";
+  tagArray[idx] = "CI";
+  cmdArray[idx] = doCircle;
+  dscArray[idx] = "Draw a circle.\n X - x coordinate of center\n Y - y coordinate of center\n R - circle radius\n C - circle color.\n";
+  idx++;
 
-  tagArray[15] = "AF";
-  cmdArray[15] = doFilledArc;
-  dscArray[15] = "Draw a filled arc.\n X - x coordinate of center\n Y - y coordinate of center\n W - width\n H - height\n A - start angle\n B - end angle\n C - arc color\n S - style index.\n";
+  tagArray[idx] = "AR";
+  cmdArray[idx] = doArc;
+  dscArray[idx] = "Draw an arc.\n X - x coordinate of center\n Y - y coordinate of center\n W - width\n H - height\n A - start angle\n B - end angle\n C - arc color.\n";
+  idx++;
 
-  tagArray[16] = "EF";
-  cmdArray[16] = doFilledEllipse;
-  dscArray[16] = "Draw a filled ellipse.\n X - x coordinate of center\n Y - y coordinate of center\n W - width\n H - height\n C - ellipse color.\n";
+  tagArray[idx] = "AF";
+  cmdArray[idx] = doFilledArc;
+  dscArray[idx] = "Draw a filled arc.\n X - x coordinate of center\n Y - y coordinate of center\n W - width\n H - height\n A - start angle\n B - end angle\n C - arc color\n S - style index.\n";
+  idx++;
 
-  tagArray[17] = "VI";
-  cmdArray[17] = doViewportOn;
-  dscArray[17] = "Enable viewport (all successive operations will use viewport coordinates).\n BBX1\n BBY1 - upper left corner of bounding box\n BBX2\n BBY2 - lower right corner of bounding box\n VPX1\n VPY1 - upper left corner of viewport\n VPX2\n VPY2 - lower right corner of viewport.\n";
+  tagArray[idx] = "EF";
+  cmdArray[idx] = doFilledEllipse;
+  dscArray[idx] = "Draw a filled ellipse.\n X - x coordinate of center\n Y - y coordinate of center\n W - width\n H - height\n C - ellipse color.\n";
+  idx++;
 
-  tagArray[18] = "VO";
-  cmdArray[18] = doViewportOff;
-  dscArray[18] = "Disable viewport (revert to image coordinates).\n";
+  tagArray[idx] = "VI";
+  cmdArray[idx] = doViewportOn;
+  dscArray[idx] = "Enable viewport (all successive operations will use viewport coordinates).\n BBX1\n BBY1 - upper left corner of bounding box\n BBX2\n BBY2 - lower right corner of bounding box\n VPX1\n VPY1 - upper left corner of viewport\n VPX2\n VPY2 - lower right corner of viewport.\n";
+  idx++;
 
-  tagArray[19] = "LD";
-  cmdArray[19] = doLoad;
-  dscArray[19] = "Load image from a file.\n S - filename of image to be read.";
+  tagArray[idx] = "VO";
+  cmdArray[idx] = doViewportOff;
+  dscArray[idx] = "Disable viewport (revert to image coordinates).\n";
+  idx++;
 
-  ncommands = 20;
+  tagArray[idx] = "LD";
+  cmdArray[idx] = doLoad;
+  dscArray[idx] = "Load image from a file.\n S - filename of image to be read.\n";
+  idx++;
+
+  tagArray[idx] = "SS";
+  cmdArray[idx] = doSetStyle;
+  dscArray[idx] = "Set line style (-1 = transparent).\n N - number of colors in style\n C1 - first color\n C2 - second color\n ...\n";
+  idx++;
+
+  tagArray[idx] = "TH";
+  cmdArray[idx] = doSetThickness;
+  dscArray[idx] = "Set line thickness.\n T - thickness in pixels.\n";
+  idx++;
+
+  ncommands = idx;
 }
 
 int findCode(char *code) {
@@ -515,12 +526,16 @@ int findCode(char *code) {
 
 void callFromCode(char *code, FILE *stream) {
   int i;
+  char *res;
 
   i = findCode(code);
   if (i >= 0) {
-    printf("%s: ", code);
+    sprintf(cmdresult, "ok");
+    // printf("%s: ", code);
     cmdArray[i](stream);
-    printf("ok\n");
+    printf("%s\n", cmdresult);
+  } else {
+    printf("bad\n");
   }
 }
 
@@ -544,9 +559,11 @@ void usage() {
   fprintf(stderr, "Read commands from file input.txt (or from standard input if no file is\n");
   fprintf(stderr, "specified). Each command represents a graphical operation performed on an\n");
   fprintf(stderr, "image in memory. The first command will typically be CR (create) to initialize\n");
-  fprintf(stderr, "the image to the desired dimensions, and the last command will typicall be SA\n");
-  fprintf(stderr, "(save) to write the image to a file. Use the '-l' option to print the list of all\n");
-  fprintf(stderr, "available commands with a short description for each.\n");
+  fprintf(stderr, "the image to the desired dimensions or LD (load) to load an existing image.\n");
+  fprintf(stderr, "The last command will typicall be SA (save) to write the image to a file.\n");
+  fprintf(stderr, "Multiple images can be created and saved in the same session. Use the ZZ code\n");
+  fprintf(stderr, "to terminate the session and exit the program.\n\n");
+  fprintf(stderr, "The '-l' option prints all available commands with a short description for each.\n");
   exit(1);
 }
 
@@ -563,11 +580,26 @@ void listCommands() {
   exit(2);
 }
 
+void verifyCommands() {
+  int i, j;
+  for (i = 0; i < ncommands; i++) {
+    for (j = i+1; j < ncommands; j++) {
+      // printf("%s %s\n", tagArray[i], tagArray[j]);
+      if (!strcmp(tagArray[i], tagArray[j])) {
+	fprintf(stderr, "Error: duplicate code %s\n", tagArray[i]);
+	exit(-1);
+      }
+    }
+  }
+}
+
 int main(int argc, char *argv[]) {
   char *filename;
   FILE *input;
 
   initFunctions();
+  verifyCommands();
+
   // printf("Functions initialized.\n");
   if (argc == 2) {
     if (!strcmp(argv[1], "-h")) {
