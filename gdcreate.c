@@ -15,6 +15,7 @@ char *tagArray[BUFSIZE];
 char *dscArray[BUFSIZE];
 int viewportOn = 0; // is viewport active?
 int bbx1, bby1, bbx2, bby2; // coordinates of viewport bounding box (real)
+int bbw, bbh;               // size of viewport bounding box
 int vpx1, vpy1, vpx2, vpy2; // coordinates of viewport (virtual)
 
 #define MAXCOLOR 256
@@ -67,7 +68,7 @@ float getFloat(FILE *stream) {
 
 int viewx(float x) {
   if (viewportOn) {
-    return round(bbx1 + ((x - vpx1) / (vpx2 - vpx1)) * (bbx2 - bbx1));
+    return round(bbx1 + ((x - vpx1) / (vpx2 - vpx1)) * bbw);
   } else {
     return round(x);
   }
@@ -75,7 +76,7 @@ int viewx(float x) {
 
 int viewy(float y) {
   if (viewportOn) {
-    return round(bby2 - ((y - vpy1) / (vpy2 - vpy1)) * (bby2 - bby1));
+    return round(bby2 - ((y - vpy1) / (vpy2 - vpy1)) * bbh);
   } else {
     return round(y);
   }
@@ -257,13 +258,16 @@ void doFilledRectangle(FILE *stream) {
 
 void doString(FILE *stream) {
   float x, y;
-  int font, c;
+  int font, a, c;
 
   font = getNumber(stream);
   x = getFloat(stream);
   y = getFloat(stream);
   c = getColor(getNumber(stream));
+  a = getNumber(stream);
   getLine(stream);
+
+  // compute anchor position here
 
   gdImageString(image, getFont(font), 
 		viewx(x), viewy(y), buffer, c);
@@ -271,16 +275,45 @@ void doString(FILE *stream) {
 
 void doStringUp(FILE *stream) {
   float x, y;
-  int font, c;
+  int font, a, c;
 
   font = getNumber(stream);
   x = getFloat(stream);
   y = getFloat(stream);
   c = getColor(getNumber(stream));
+  a = getNumber(stream);
   getLine(stream);
+
+  // compute anchor position here
 
   gdImageStringUp(image, getFont(font), 
 		  viewx(x), viewy(y), buffer, c);
+}
+
+void doPolygon(FILE *stream) {
+  gdPoint points[10];
+  int n, i, c;
+
+  n = getNumber(stream);
+  for (i = 0; i < n; i++) {
+    points[i].x = viewx(getNumber(stream));
+    points[i].y = viewy(getNumber(stream));
+  }
+  c = getColor(getNumber(stream));
+  gdImagePolygon(image, points, n, c);
+}
+
+void doFilledPolygon(FILE *stream) {
+  gdPoint points[10];
+  int n, i, c;
+
+  n = getNumber(stream);
+  for (i = 0; i < n; i++) {
+    points[i].x = viewx(getNumber(stream));
+    points[i].y = viewy(getNumber(stream));
+  }
+  c = getColor(getNumber(stream));
+  gdImageFilledPolygon(image, points, n, c);
 }
 
 void doFill(FILE *stream) {
@@ -372,6 +405,8 @@ void doViewportOn(FILE *stream) {
   bby1 = getNumber(stream);
   bbx2 = getNumber(stream);
   bby2 = getNumber(stream);
+  bbw  = bbx2 - bbx1;
+  bbh  = bby2 - bby1;
   vpx1 = getNumber(stream);
   vpy1 = getNumber(stream);
   vpx2 = getNumber(stream);
@@ -422,43 +457,51 @@ void initFunctions() {
   cmdArray[8] = doStringUp;
   dscArray[8] = "Draw a string with vertical orientation.\n X - x coordinate of string\n Y - y coordinate of string\n C - string color\n S - string to be drawn.\n";
 
-  tagArray[9] = "FI";
-  cmdArray[9] = doFill;
-  dscArray[9] = "Fill a region with the specified color.\n X - x coordinate of seed point\n Y - y coordinate of seed point\n C - fill color.\n";
+  tagArray[9] = "PO";
+  cmdArray[9] = doPolygon;
+  dscArray[9] = "Draw a polygon with the specified vertices.\n N - number of points\n X1\n Y1 - coordinates of first point\n ...\n C - color\n";
 
-  tagArray[10] = "FB";
-  cmdArray[10] = doFillToBorder;
-  dscArray[10] = "Fill to border.\n";
+  tagArray[10] = "PF";
+  cmdArray[10] = doFilledPolygon;
+  dscArray[10] = "Draw a filled polygon with the specified vertices.\n N - number of points\n X1\n Y1 - coordinates of first point\n ...\n C - color\n";
 
-  tagArray[11] = "CI";
-  cmdArray[11] = doCircle;
-  dscArray[11] = "Draw a circle.\n X - x coordinate of center\n Y - y coordinate of center\n R - circle radius\n C - circle color.\n";
+  tagArray[11] = "FI";
+  cmdArray[11] = doFill;
+  dscArray[11] = "Fill a region with the specified color.\n X - x coordinate of seed point\n Y - y coordinate of seed point\n C - fill color.\n";
 
-  tagArray[12] = "AR";
-  cmdArray[12] = doArc;
-  dscArray[12] = "Draw an arc.\n X - x coordinate of center\n Y - y coordinate of center\n W - width\n H - height\n A - start angle\n B - end angle\n C - arc color.\n";
+  tagArray[12] = "FB";
+  cmdArray[12] = doFillToBorder;
+  dscArray[12] = "Fill to border.\n";
 
-  tagArray[13] = "AF";
-  cmdArray[13] = doFilledArc;
-  dscArray[13] = "Draw a filled arc.\n X - x coordinate of center\n Y - y coordinate of center\n W - width\n H - height\n A - start angle\n B - end angle\n C - arc color\n S - style index.\n";
+  tagArray[13] = "CI";
+  cmdArray[13] = doCircle;
+  dscArray[13] = "Draw a circle.\n X - x coordinate of center\n Y - y coordinate of center\n R - circle radius\n C - circle color.\n";
 
-  tagArray[14] = "EF";
-  cmdArray[14] = doFilledEllipse;
-  dscArray[14] = "Draw a filled ellipse.\n X - x coordinate of center\n Y - y coordinate of center\n W - width\n H - height\n C - ellipse color.\n";
+  tagArray[14] = "AR";
+  cmdArray[14] = doArc;
+  dscArray[14] = "Draw an arc.\n X - x coordinate of center\n Y - y coordinate of center\n W - width\n H - height\n A - start angle\n B - end angle\n C - arc color.\n";
 
-  tagArray[15] = "VI";
-  cmdArray[15] = doViewportOn;
-  dscArray[15] = "Enable viewport (all successive operations will use viewport coordinates).\n";
+  tagArray[15] = "AF";
+  cmdArray[15] = doFilledArc;
+  dscArray[15] = "Draw a filled arc.\n X - x coordinate of center\n Y - y coordinate of center\n W - width\n H - height\n A - start angle\n B - end angle\n C - arc color\n S - style index.\n";
 
-  tagArray[16] = "VO";
-  cmdArray[16] = doViewportOff;
-  dscArray[16] = "Disable viewport (revert to image coordinates).\n";
+  tagArray[16] = "EF";
+  cmdArray[16] = doFilledEllipse;
+  dscArray[16] = "Draw a filled ellipse.\n X - x coordinate of center\n Y - y coordinate of center\n W - width\n H - height\n C - ellipse color.\n";
 
-  tagArray[17] = "LD";
-  cmdArray[17] = doLoad;
-  dscArray[17] = "Load image from a file.\n S - filename of image to be read.";
+  tagArray[17] = "VI";
+  cmdArray[17] = doViewportOn;
+  dscArray[17] = "Enable viewport (all successive operations will use viewport coordinates).\n BBX1\n BBY1 - upper left corner of bounding box\n BBX2\n BBY2 - lower right corner of bounding box\n VPX1\n VPY1 - upper left corner of viewport\n VPX2\n VPY2 - lower right corner of viewport.\n";
 
-  ncommands = 18;
+  tagArray[18] = "VO";
+  cmdArray[18] = doViewportOff;
+  dscArray[18] = "Disable viewport (revert to image coordinates).\n";
+
+  tagArray[19] = "LD";
+  cmdArray[19] = doLoad;
+  dscArray[19] = "Load image from a file.\n S - filename of image to be read.";
+
+  ncommands = 20;
 }
 
 int findCode(char *code) {
