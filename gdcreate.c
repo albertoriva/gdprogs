@@ -78,15 +78,60 @@ gdPoint fontSize(int f) {
   // Returns the X and Y size of font `f' as a gdPoint
   gdPoint s;
   switch (f) {
-  case 0: s.x = 5; s.y = 8; break;
-  case 1: s.x = 6; s.y = 12; break;
-  case 2: s.x = 7; s.y = 13; break;
-  case 3: s.x = 8; s.y = 16; break;
-  case 4: s.x = 9; s.y = 15; break;
+  case 1: s.x = 5; s.y = 8; break;
+  case 2: s.x = 6; s.y = 12; break;
+  case 3: s.x = 7; s.y = 13; break;
+  case 4: s.x = 8; s.y = 16; break;
+  case 5: s.x = 9; s.y = 15; break;
   }
   return s;
 }
+
+gdPoint stringSize(char *s, int f) {
+  // Returns the X and Y dimensions of string `s' when printed with font `f' (a GD font index).
+  gdPoint fsize;
+  gdPoint result;
+
+  fsize = fontSize(f);
+  //printf("%dx%d %d\n", fsize.x, fsize.y, strlen(s));
+
+  result.x = strlen(s) * fsize.x;
+  result.y = fsize.y;
+  return result;
+}
+
+gdPoint stringAnchor(gdPoint point, gdPoint dimensions, int anchor) {
+  /* Returns the point at which a string of the specified `dimensions' should
+     be drawn so that its anchor point `anchor' is at `point'. Anchor points:
+
+     1--------2--------3
+     |                 |
+     4        5        6
+     |                 |
+     7--------8--------9
   
+  */
+
+  gdPoint result;
+  int w = dimensions.x;
+  int h = dimensions.y;
+  int halfw = dimensions.x / 2;
+  int halfh = dimensions.y / 2;
+
+  switch (anchor) {
+  case 1: result.x = point.x;         result.y = point.y; break;
+  case 2: result.x = point.x - halfw; result.y = point.y; break;
+  case 3: result.x = point.x - w;     result.y = point.y; break;
+  case 4: result.x = point.x;         result.y = point.y - halfh; break;
+  case 5: result.x = point.x - halfw; result.y = point.y - halfh; break;
+  case 6: result.x = point.x - w;     result.y = point.y - halfh; break;
+  case 7: result.x = point.x;         result.y = point.y - h; break;
+  case 8: result.x = point.x - halfw; result.y = point.y - h; break;
+  case 9: result.x = point.x - w;     result.y = point.y - h; break;
+  }
+  return result;
+}
+
 /* Viewport management */
 
 int viewx(float x) {
@@ -107,7 +152,7 @@ int viewy(float y) {
 
 int scalex(float x) {
   if (viewportOn) {
-    return round((x / (vpx2 - vpx1)) * (bbx2 - bbx1));
+    return round((x / (vpx2 - vpx1)) * bbw);
   } else {
     return x;
   }
@@ -115,7 +160,7 @@ int scalex(float x) {
 
 int scaley(float y) {
   if (viewportOn) {
-    return round((y / (vpy2 - vpy1)) * (bby2 - bby1));
+    return round((y / (vpy2 - vpy1)) * bbh);
   } else {
     return round(y);
   }
@@ -237,6 +282,7 @@ void doSetFont(FILE *stream) {
 void doString(FILE *stream) {
   float x, y;
   int a, c;
+  gdPoint size, point;
 
   x = getFloat(stream);
   y = getFloat(stream);
@@ -249,7 +295,11 @@ void doString(FILE *stream) {
   if (currentFontIdx == 0) {
     gdImageStringFT(image, NULL, c, currentFontFT, 10.0, 0.0, viewx(x), viewy(y), buffer);
   } else {
-    gdImageString(image, currentFont, viewx(x), viewy(y), buffer, c);
+    size = stringSize(buffer, currentFontIdx);
+    point.x = viewx(x);
+    point.y = viewy(y);
+    point = stringAnchor(point, size, a);
+    gdImageString(image, currentFont, point.x, point.y, buffer, c);
   }
 }
 
@@ -279,6 +329,7 @@ void doFTString(FILE *stream) {
 void doStringUp(FILE *stream) {
   float x, y;
   int a, c;
+  gdPoint size, point;
 
   x = getFloat(stream);
   y = getFloat(stream);
@@ -288,8 +339,11 @@ void doStringUp(FILE *stream) {
 
   // compute anchor position here
 
-  gdImageStringUp(image, currentFont,
-		  viewx(x), viewy(y), buffer, c);
+  size = stringSize(buffer, currentFontIdx);
+  point.x = viewx(x);
+  point.y = viewy(y);
+  point = stringAnchor(point, size, a);
+  gdImageStringUp(image, currentFont, point.x, point.y, buffer, c);
 }
 
 void doPolygon(FILE *stream) {
