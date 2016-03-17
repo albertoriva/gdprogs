@@ -100,7 +100,7 @@ gdPoint stringSize(char *s, int f) {
   return result;
 }
 
-gdPoint stringAnchor(gdPoint point, gdPoint dimensions, int anchor) {
+gdPoint stringAnchor(gdPoint point, gdPoint dimensions, int anchor, int vertical) {
   /* Returns the point at which a string of the specified `dimensions' should
      be drawn so that its anchor point `anchor' is at `point'. Anchor points:
 
@@ -110,25 +110,45 @@ gdPoint stringAnchor(gdPoint point, gdPoint dimensions, int anchor) {
      |                 |
      7--------8--------9
   
+     When `vertical' is 1, returns coordinate suitable for gdStringUp with the
+     following pattern:
+
+     7--------8--------9
+     |                 |
+     4        5        6
+     |                 |
+     1--------2--------3
+
   */
 
   gdPoint result;
-  int w = dimensions.x;
-  int h = dimensions.y;
-  int halfw = dimensions.x / 2;
-  int halfh = dimensions.y / 2;
+  int w, h, dir;
+
+  if (vertical) {
+    w = dimensions.y;
+    h = dimensions.x;
+    printf("w=%d, h=%d\n", w, h);
+    dir = 1;
+  } else {
+    w = dimensions.x;
+    h = dimensions.y;
+    dir = -1;
+  }
+  int halfw = w / 2;
+  int halfh = h / 2;
 
   switch (anchor) {
   case 1: result.x = point.x;         result.y = point.y; break;
   case 2: result.x = point.x - halfw; result.y = point.y; break;
   case 3: result.x = point.x - w;     result.y = point.y; break;
-  case 4: result.x = point.x;         result.y = point.y - halfh; break;
-  case 5: result.x = point.x - halfw; result.y = point.y - halfh; break;
-  case 6: result.x = point.x - w;     result.y = point.y - halfh; break;
-  case 7: result.x = point.x;         result.y = point.y - h; break;
-  case 8: result.x = point.x - halfw; result.y = point.y - h; break;
-  case 9: result.x = point.x - w;     result.y = point.y - h; break;
+  case 4: result.x = point.x;         result.y = point.y + (dir * halfh); break;
+  case 5: result.x = point.x - halfw; result.y = point.y + (dir * halfh); break;
+  case 6: result.x = point.x - w;     result.y = point.y + (dir * halfh); break;
+  case 7: result.x = point.x;         result.y = point.y + (dir * h); break;
+  case 8: result.x = point.x - halfw; result.y = point.y + (dir * h); break;
+  case 9: result.x = point.x - w;     result.y = point.y + (dir * h); break;
   }
+  printf("moved to: %d, %d\n", result.x, result.y);
   return result;
 }
 
@@ -290,15 +310,13 @@ void doString(FILE *stream) {
   a = getNumber(stream);
   getLine(stream);
 
-  // compute anchor position here
-
   if (currentFontIdx == 0) {
     gdImageStringFT(image, NULL, c, currentFontFT, 10.0, 0.0, viewx(x), viewy(y), buffer);
   } else {
     size = stringSize(buffer, currentFontIdx);
     point.x = viewx(x);
     point.y = viewy(y);
-    point = stringAnchor(point, size, a);
+    point = stringAnchor(point, size, a, 0);
     gdImageString(image, currentFont, point.x, point.y, buffer, c);
   }
 }
@@ -328,7 +346,7 @@ void doFTString(FILE *stream) {
 
 void doStringUp(FILE *stream) {
   float x, y;
-  int a, c;
+  int a, c, tmp;
   gdPoint size, point;
 
   x = getFloat(stream);
@@ -342,7 +360,7 @@ void doStringUp(FILE *stream) {
   size = stringSize(buffer, currentFontIdx);
   point.x = viewx(x);
   point.y = viewy(y);
-  point = stringAnchor(point, size, a);
+  point = stringAnchor(point, size, a, 1);
   gdImageStringUp(image, currentFont, point.x, point.y, buffer, c);
 }
 
