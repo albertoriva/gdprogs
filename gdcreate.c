@@ -24,11 +24,18 @@ int colors[MAXCOLOR];
 int colorptr = 0;
 
 gdImagePtr image;
+
+// Font support
+
 extern gdFontPtr gdFontTiny;
 extern gdFontPtr gdFontSmall;
 extern gdFontPtr gdFontMediumBold;
 extern gdFontPtr gdFontLarge;
 extern gdFontPtr gdFontGiant;
+
+int currentFontIdx;		/* If 0, font is FT */
+gdFontPtr currentFont;
+char currentFontFT[BUFSIZE];
 
 /* Utils */
 
@@ -118,12 +125,13 @@ int scaley(float y) {
 
 gdFontPtr getFont(int f) {
   switch (f) {
-  case 0: return gdFontTiny; break;
-  case 1: return gdFontSmall; break;
-  case 2: return gdFontMediumBold; break;
-  case 3: return gdFontLarge; break;
-  case 4: return gdFontGiant; break;
+  case 1: return gdFontTiny; break;
+  case 2: return gdFontSmall; break;
+  case 3: return gdFontMediumBold; break;
+  case 4: return gdFontLarge; break;
+  case 5: return gdFontGiant; break;
   }
+  currentFontIdx = 2;
   return gdFontSmall;  // default
 }
 
@@ -213,11 +221,23 @@ void doFilledRectangle(FILE *stream) {
   gdImageFilledRectangle(image, viewx(x1), viewy(y1), viewx(x2), viewy(y2), c);
 }
 
+void doSetFont(FILE *stream) {
+  int f;
+
+  f = getNumber(stream);
+  currentFontIdx = f;
+  if (f == 0) {
+    getLine(stream);
+    strcpy(currentFontFT, buffer);
+  } else {
+    currentFont = getFont(f);
+  }
+}
+
 void doString(FILE *stream) {
   float x, y;
-  int font, a, c;
+  int a, c;
 
-  font = getNumber(stream);
   x = getFloat(stream);
   y = getFloat(stream);
   c = getColor(getNumber(stream));
@@ -226,15 +246,40 @@ void doString(FILE *stream) {
 
   // compute anchor position here
 
-  gdImageString(image, getFont(font), 
-		viewx(x), viewy(y), buffer, c);
+  if (currentFontIdx == 0) {
+    gdImageStringFT(image, NULL, c, currentFontFT, 10.0, 0.0, viewx(x), viewy(y), buffer);
+  } else {
+    gdImageString(image, currentFont, viewx(x), viewy(y), buffer, c);
+  }
+}
+
+void doFTString(FILE *stream) {
+  float x, y, p, d;
+  int a, c;
+
+  x = getFloat(stream);
+  y = getFloat(stream);
+  c = getColor(getNumber(stream));
+  a = getNumber(stream);
+  p = getFloat(stream);
+  d = getFloat(stream);
+  getLine(stream);
+
+  // Convert angle to radians
+
+  a = (a * (22.0 / 7.0)) / 180.0;
+
+  // compute anchor position here
+
+  if (currentFontIdx == 0) {
+    gdImageStringFT(image, NULL, c, currentFontFT, p, d, viewx(x), viewy(y), buffer);
+  }
 }
 
 void doStringUp(FILE *stream) {
   float x, y;
-  int font, a, c;
+  int a, c;
 
-  font = getNumber(stream);
   x = getFloat(stream);
   y = getFloat(stream);
   c = getColor(getNumber(stream));
@@ -243,7 +288,7 @@ void doStringUp(FILE *stream) {
 
   // compute anchor position here
 
-  gdImageStringUp(image, getFont(font), 
+  gdImageStringUp(image, currentFont,
 		  viewx(x), viewy(y), buffer, c);
 }
 
@@ -437,14 +482,24 @@ void initFunctions() {
   dscArray[idx] = "Draw a filled rectangle from (x1, y1) to (x2, y2).\n X1 - x1 coordinate\n Y1 - y1 coordinate\n X2 - x2 coordinate\n Y2 - y2 coordinate\n C - rectangle color.\n";
   idx++;
 
+  tagArray[idx] = "SF";
+  cmdArray[idx] = doSetFont;
+  dscArray[idx] = "Select current font.\n F - font id (0-5)\n N - TF font name (if F=0)\n";
+  idx++;
+
   tagArray[idx] = "ST";
   cmdArray[idx] = doString;
-  dscArray[idx] = "Draw a string.\n X - x coordinate of string\n Y - y coordinate of string\n C - string color\n S - string to be drawn.\n";
+  dscArray[idx] = "Draw a string.\n X - x coordinate of string\n Y - y coordinate of string\n C - string color\n A - anchor point\n S - string to be drawn.\n";
+  idx++;
+
+  tagArray[idx] = "S*";
+  cmdArray[idx] = doFTString;
+  dscArray[idx] = "Draw a string using a FreeType font.\n X - x coordinate of string\n Y - y coordinate of string\n C - string color\n A - anchor point\n P - ptsize\n D - angle\n S - string to be drawn.\n";
   idx++;
 
   tagArray[idx] = "SU";
   cmdArray[idx] = doStringUp;
-  dscArray[idx] = "Draw a string with vertical orientation.\n X - x coordinate of string\n Y - y coordinate of string\n C - string color\n S - string to be drawn.\n";
+  dscArray[idx] = "Draw a string with vertical orientation.\n X - x coordinate of string\n Y - y coordinate of string\n C - string color\n A - anchor point\n S - string to be drawn.\n";
   idx++;
 
   tagArray[idx] = "PO";
@@ -547,6 +602,10 @@ void gdMainLoop(FILE *stream) {
     // printf("Read: %s\n", buffer);
     if (!strcmp(buffer, "ZZ")) {
       cont = 0;
+    } else if (!strcmp(buffer, "")) {
+      ;;
+    } else if (buffer[0] == '#') {
+      ;;
     } else {
       callFromCode(buffer, stream);
     }
@@ -599,6 +658,8 @@ int main(int argc, char *argv[]) {
 
   initFunctions();
   verifyCommands();
+  currentFontIdx = 2;
+  currentFont = getFont(currentFontIdx);
 
   // printf("Functions initialized.\n");
   if (argc == 2) {
