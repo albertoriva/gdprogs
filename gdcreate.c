@@ -152,6 +152,32 @@ gdPoint stringAnchor(gdPoint point, gdPoint dimensions, int anchor, int vertical
   return result;
 }
 
+int mid(int a, int b) {
+  return (a + b) / 2;
+}
+
+gdPoint stringAnchorFT(gdPoint point, int *brect, int anchor) {
+  gdPoint result, target;
+  
+  result.x = point.x;
+  result.y = point.y;
+  switch (anchor) {
+    //case 1: result.x = (point.x * 2) - brect[6]; result.y = (point.y * 2) - brect[7]; break;
+  case 1: target.x = brect[6]; target.y = brect[7]; break;
+  case 2: target.x = mid(brect[4], brect[6]); target.y = mid(brect[5], brect[7]); break;
+  case 3: target.x = brect[4]; target.y = brect[5]; break;
+  case 4: target.x = mid(brect[0], brect[6]); target.y = mid(brect[1], brect[7]); break;
+  case 5: target.x = mid(brect[0], brect[4]); target.y = mid(brect[1], brect[5]); break;
+  case 6: target.x = mid(brect[2], brect[4]); target.y = mid(brect[3], brect[5]); break;
+  case 7: target.x = brect[0]; target.y = brect[1]; break;
+  case 8: target.x = mid(brect[0], brect[2]); target.y = mid(brect[1], brect[3]); break;
+  case 9: target.x = brect[2]; target.y = brect[3]; break;
+  }
+  result.x = (point.x * 2) - target.x;
+  result.y = (point.y * 2) - target.y;
+  return result;
+}
+
 /* Viewport management */
 
 int viewx(float x) {
@@ -324,6 +350,8 @@ void doString(FILE *stream) {
 void doFTString(FILE *stream) {
   float x, y, p, d;
   int a, c;
+  int brect[8];
+  gdPoint points[4], point;
 
   x = getFloat(stream);
   y = getFloat(stream);
@@ -335,12 +363,28 @@ void doFTString(FILE *stream) {
 
   // Convert angle to radians
 
-  a = (a * (22.0 / 7.0)) / 180.0;
+  d = (d * (22.0 / 7.0)) / 180.0;
 
   // compute anchor position here
 
   if (currentFontIdx == 0) {
-    gdImageStringFT(image, NULL, c, currentFontFT, p, d, viewx(x), viewy(y), buffer);
+    point.x = viewx(x);
+    point.y = viewy(y);
+    gdImageStringFT(NULL, brect, c, currentFontFT, p, d, point.x, point.y, buffer);
+    point = stringAnchorFT(point, brect, a);
+    // printf("Printing at %d, %d\n", point.x, point.y);
+    gdImageStringFT(image, brect, c, currentFontFT, p, d, point.x, point.y, buffer);
+    /*
+    points[0].x = brect[0];
+    points[0].y = brect[1];
+    points[1].x = brect[2];
+    points[1].y = brect[3];
+    points[2].x = brect[4];
+    points[2].y = brect[5];
+    points[3].x = brect[6];
+    points[3].y = brect[7];
+    gdImagePolygon(image, points, 4, c);
+    */
   }
 }
 
