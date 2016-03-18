@@ -236,6 +236,10 @@ int getColor(int idx) {
 
 /* Commands */
 
+void version(FILE *stream) {
+  sprintf(cmdresult, "1.0");
+}
+
 void doCreate(FILE *stream) {
   int x, y;
   x = getNumber(stream);
@@ -563,6 +567,11 @@ void doSetThickness(FILE *stream) {
 void initFunctions() {
   int idx = 0;
 
+  tagArray[idx] = "VE";
+  cmdArray[idx] = version;
+  dscArray[idx] = "Print version number.\n";
+  idx++;
+
   tagArray[idx] = "CR";
   cmdArray[idx] = doCreate;
   dscArray[idx] = "Create new image with specified dimensions.\n W - image width\n H - image height\n";
@@ -704,10 +713,11 @@ void callFromCode(char *code, FILE *stream) {
     sprintf(cmdresult, "ok");
     // printf("%s: ", code);
     cmdArray[i](stream);
-    printf("%s\n", cmdresult);
+    fprintf(stdout, "%s\n", cmdresult);
   } else {
-    printf("bad\n");
+    fprintf(stdout, "bad\n");
   }
+  fflush(stdout);
 }
 
 void gdMainLoop(FILE *stream) {
