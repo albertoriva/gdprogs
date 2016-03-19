@@ -17,7 +17,7 @@ char *dscArray[BUFSIZE];
 int viewportOn = 0; // is viewport active?
 int bbx1, bby1, bbx2, bby2; // coordinates of viewport bounding box (real)
 int bbw, bbh;               // size of viewport bounding box
-int vpx1, vpy1, vpx2, vpy2; // coordinates of viewport (virtual)
+float vpx1, vpy1, vpx2, vpy2; // coordinates of viewport (virtual)
 
 #define MAXCOLOR 256
 int colors[MAXCOLOR];
@@ -148,7 +148,7 @@ gdPoint stringAnchor(gdPoint point, gdPoint dimensions, int anchor, int vertical
   case 8: result.x = point.x - halfw; result.y = point.y + (dir * h); break;
   case 9: result.x = point.x - w;     result.y = point.y + (dir * h); break;
   }
-  printf("moved to: %d, %d\n", result.x, result.y);
+  // printf("moved to: %d, %d\n", result.x, result.y);
   return result;
 }
 
@@ -181,8 +181,13 @@ gdPoint stringAnchorFT(gdPoint point, int *brect, int anchor) {
 /* Viewport management */
 
 int viewx(float x) {
+  float d;
   if (viewportOn) {
-    return round(bbx1 + ((x - vpx1) / (vpx2 - vpx1)) * bbw);
+    // fprintf(stderr, "x=%f, bbw=%d\n", x, bbw);
+    // fprintf(stderr, "x-vpx1=%f, vpx2-vpx1=%f\n", (x-vpx1), (vpx2-vpx1));
+    d = ((x - vpx1) / (vpx2 - vpx1));
+    // fprintf(stderr, "d=%f, d*bbw=%f\n\n", d, d*bbw);
+    return round(bbx1 + d * bbw);
   } else {
     return round(x);
   }
@@ -529,10 +534,10 @@ void doViewportOn(FILE *stream) {
   bby2 = getNumber(stream);
   bbw  = bbx2 - bbx1;
   bbh  = bby2 - bby1;
-  vpx1 = getNumber(stream);
-  vpy1 = getNumber(stream);
-  vpx2 = getNumber(stream);
-  vpy2 = getNumber(stream);
+  vpx1 = getFloat(stream);
+  vpy1 = getFloat(stream);
+  vpx2 = getFloat(stream);
+  vpy2 = getFloat(stream);
   viewportOn = 1;
 }
 
