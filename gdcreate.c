@@ -288,13 +288,17 @@ void doColorRange(FILE *stream) {
   r2 = getNumber(stream);
   g2 = getNumber(stream);
   b2 = getNumber(stream);
+  // fprintf(stderr, "%d (%d, %d, %d) to (%d, %d, %d)\n", n, r1, g1, b1, r2, g2, b2);
+  // rd = r2 - r1; gd = g2 - g1; bd = b2 - b1;
   for (step = 0; step <= n; step++) {
-    alpha = 1.0 * step / n;
-    beta = 1.0 * (n - step) / step;
-    r = alpha * r1 + beta * r2;
-    g = alpha * g1 + beta * g2;
-    b = alpha * b1 + beta * b2;
+    alpha = 1.0 * (n - step) / n;
+    beta  = 1.0 * step / n;
+    r = round(alpha * r1 + beta * r2);
+    g = round(alpha * g1 + beta * g2);
+    b = round(alpha * b1 + beta * b2);
+    
     idx = gdImageColorAllocate(image, r, g, b);
+    // fprintf(stderr, "a=%f, idx=%d (%d, %d, %d)\n", alpha, idx, r, g, b);
     colors[colorptr] = idx;
     colorptr++;
     if (step == 0) {
