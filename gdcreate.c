@@ -276,6 +276,36 @@ void doColorAllocate(FILE *stream) {
   sprintf(cmdresult, "%d", idx);
 }
 
+void doColorRange(FILE *stream) {
+  int n, r1, g1, b1, r2, g2, b2, r, g, b;
+  int idx, step, minc, maxc;
+  float alpha, beta;
+
+  n = getNumber(stream);
+  r1 = getNumber(stream);
+  g1 = getNumber(stream);
+  b1 = getNumber(stream);
+  r2 = getNumber(stream);
+  g2 = getNumber(stream);
+  b2 = getNumber(stream);
+  for (step = 0; step <= n; step++) {
+    alpha = 1.0 * step / n;
+    beta = 1.0 * (n - step) / step;
+    r = alpha * r1 + beta * r2;
+    g = alpha * g1 + beta * g2;
+    b = alpha * b1 + beta * b2;
+    idx = gdImageColorAllocate(image, r, g, b);
+    colors[colorptr] = idx;
+    colorptr++;
+    if (step == 0) {
+      minc = idx;
+    } else {
+      maxc = idx;
+    }
+  }
+  sprintf(cmdresult, "%d-%d", minc, maxc);
+}
+
 void doPixel(FILE *stream) {
   float x, y;
   int c;
@@ -572,19 +602,14 @@ void doSetThickness(FILE *stream) {
 void initFunctions() {
   int idx = 0;
 
-  tagArray[idx] = "VE";
-  cmdArray[idx] = version;
-  dscArray[idx] = "Print version number.\n";
+  tagArray[idx] = "AR";
+  cmdArray[idx] = doArc;
+  dscArray[idx] = "Draw an arc.\n X - x coordinate of center\n Y - y coordinate of center\n W - width\n H - height\n A - start angle\n B - end angle\n C - arc color.\n";
   idx++;
 
-  tagArray[idx] = "CR";
-  cmdArray[idx] = doCreate;
-  dscArray[idx] = "Create new image with specified dimensions.\n W - image width\n H - image height\n";
-  idx++;
-
-  tagArray[idx] = "SA";
-  cmdArray[idx] = doSave;
-  dscArray[idx] = "Save current image to specified file.\n S - filename of output image\n";
+  tagArray[idx] = "AF";
+  cmdArray[idx] = doFilledArc;
+  dscArray[idx] = "Draw a filled arc.\n X - x coordinate of center\n Y - y coordinate of center\n W - width\n H - height\n A - start angle\n B - end angle\n C - arc color\n S - style index.\n";
   idx++;
 
   tagArray[idx] = "CA";
@@ -592,14 +617,59 @@ void initFunctions() {
   dscArray[idx] = "Allocate a color with the specified R, G, and B components.\n R - red component (0-255)\n G - green component (0-255)\n B - blue component (0-255)\n";
   idx++;
 
-  tagArray[idx] = "PI";
-  cmdArray[idx] = doPixel;
-  dscArray[idx] = "Draw a pixel.\n X - x coordinate of pixel\n Y - y coordinate of pixel\n C - pixel color\n";
+  tagArray[idx] = "CI";
+  cmdArray[idx] = doCircle;
+  dscArray[idx] = "Draw a circle.\n X - x coordinate of center\n Y - y coordinate of center\n R - circle radius\n C - circle color.\n";
+  idx++;
+
+  tagArray[idx] = "C*";
+  cmdArray[idx] = doColorRange;
+  dscArray[idx] = "Allocate a range of colors.\n N - number of colors wanted\n R1\n G1\n B1 - First color in range\n R2\n G2\n B2 - Last color in range.\n";
+  idx++;
+
+  tagArray[idx] = "CR";
+  cmdArray[idx] = doCreate;
+  dscArray[idx] = "Create new image with specified dimensions.\n W - image width\n H - image height\n";
+  idx++;
+
+  tagArray[idx] = "EF";
+  cmdArray[idx] = doFilledEllipse;
+  dscArray[idx] = "Draw a filled ellipse.\n X - x coordinate of center\n Y - y coordinate of center\n W - width\n H - height\n C - ellipse color.\n";
+  idx++;
+
+  tagArray[idx] = "FB";
+  cmdArray[idx] = doFillToBorder;
+  dscArray[idx] = "Fill to border.\n X - x coordinate of seed point\n Y - y coordinate of seed point\n B - border color\n C - fill color.\n";
+  idx++;
+
+  tagArray[idx] = "FI";
+  cmdArray[idx] = doFill;
+  dscArray[idx] = "Fill a region with the specified color.\n X - x coordinate of seed point\n Y - y coordinate of seed point\n C - fill color.\n";
+  idx++;
+
+  tagArray[idx] = "LD";
+  cmdArray[idx] = doLoad;
+  dscArray[idx] = "Load image from a file.\n S - filename of image to be read.\n";
   idx++;
 
   tagArray[idx] = "LI";
   cmdArray[idx] = doLine;
   dscArray[idx] = "Draw a line from (x1, y1) to (x2, y2).\n X1 - x1 coordinate\n Y1 - y1 coordinate\n X2 - x2 coordinate\n Y2 - y2 coordinate\n C - line color.\n";
+  idx++;
+
+  tagArray[idx] = "PF";
+  cmdArray[idx] = doFilledPolygon;
+  dscArray[idx] = "Draw a filled polygon with the specified vertices.\n N - number of points\n X1\n Y1 - coordinates of first point\n ...\n C - color\n";
+  idx++;
+
+  tagArray[idx] = "PI";
+  cmdArray[idx] = doPixel;
+  dscArray[idx] = "Draw a pixel.\n X - x coordinate of pixel\n Y - y coordinate of pixel\n C - pixel color\n";
+  idx++;
+
+  tagArray[idx] = "PO";
+  cmdArray[idx] = doPolygon;
+  dscArray[idx] = "Draw a polygon with the specified vertices.\n N - number of points\n X1\n Y1 - coordinates of first point\n ...\n C - color\n";
   idx++;
 
   tagArray[idx] = "RE";
@@ -612,9 +682,19 @@ void initFunctions() {
   dscArray[idx] = "Draw a filled rectangle from (x1, y1) to (x2, y2).\n X1 - x1 coordinate\n Y1 - y1 coordinate\n X2 - x2 coordinate\n Y2 - y2 coordinate\n C - rectangle color.\n";
   idx++;
 
+  tagArray[idx] = "SA";
+  cmdArray[idx] = doSave;
+  dscArray[idx] = "Save current image to specified file.\n S - filename of output image\n";
+  idx++;
+
   tagArray[idx] = "SF";
   cmdArray[idx] = doSetFont;
   dscArray[idx] = "Select current font.\n F - font id (0-5)\n N - TF font name (if F=0)\n";
+  idx++;
+
+  tagArray[idx] = "SS";
+  cmdArray[idx] = doSetStyle;
+  dscArray[idx] = "Set line style (-1 = transparent).\n N - number of colors in style\n C1 - first color\n C2 - second color\n ...\n";
   idx++;
 
   tagArray[idx] = "ST";
@@ -622,54 +702,24 @@ void initFunctions() {
   dscArray[idx] = "Draw a string.\n X - x coordinate of string\n Y - y coordinate of string\n C - string color\n A - anchor point\n S - string to be drawn.\n";
   idx++;
 
-  tagArray[idx] = "S*";
-  cmdArray[idx] = doFTString;
-  dscArray[idx] = "Draw a string using a FreeType font.\n X - x coordinate of string\n Y - y coordinate of string\n C - string color\n A - anchor point\n P - ptsize\n D - angle\n S - string to be drawn.\n";
-  idx++;
-
   tagArray[idx] = "SU";
   cmdArray[idx] = doStringUp;
   dscArray[idx] = "Draw a string with vertical orientation.\n X - x coordinate of string\n Y - y coordinate of string\n C - string color\n A - anchor point\n S - string to be drawn.\n";
   idx++;
 
-  tagArray[idx] = "PO";
-  cmdArray[idx] = doPolygon;
-  dscArray[idx] = "Draw a polygon with the specified vertices.\n N - number of points\n X1\n Y1 - coordinates of first point\n ...\n C - color\n";
+  tagArray[idx] = "S*";
+  cmdArray[idx] = doFTString;
+  dscArray[idx] = "Draw a string using a FreeType font.\n X - x coordinate of string\n Y - y coordinate of string\n C - string color\n A - anchor point\n P - ptsize\n D - angle\n S - string to be drawn.\n";
   idx++;
 
-  tagArray[idx] = "PF";
-  cmdArray[idx] = doFilledPolygon;
-  dscArray[idx] = "Draw a filled polygon with the specified vertices.\n N - number of points\n X1\n Y1 - coordinates of first point\n ...\n C - color\n";
+  tagArray[idx] = "TH";
+  cmdArray[idx] = doSetThickness;
+  dscArray[idx] = "Set line thickness.\n T - thickness in pixels.\n";
   idx++;
 
-  tagArray[idx] = "FI";
-  cmdArray[idx] = doFill;
-  dscArray[idx] = "Fill a region with the specified color.\n X - x coordinate of seed point\n Y - y coordinate of seed point\n C - fill color.\n";
-  idx++;
-
-  tagArray[idx] = "FB";
-  cmdArray[idx] = doFillToBorder;
-  dscArray[idx] = "Fill to border.\n X - x coordinate of seed point\n Y - y coordinate of seed point\n B - border color\n C - fill color.\n";
-  idx++;
-
-  tagArray[idx] = "CI";
-  cmdArray[idx] = doCircle;
-  dscArray[idx] = "Draw a circle.\n X - x coordinate of center\n Y - y coordinate of center\n R - circle radius\n C - circle color.\n";
-  idx++;
-
-  tagArray[idx] = "AR";
-  cmdArray[idx] = doArc;
-  dscArray[idx] = "Draw an arc.\n X - x coordinate of center\n Y - y coordinate of center\n W - width\n H - height\n A - start angle\n B - end angle\n C - arc color.\n";
-  idx++;
-
-  tagArray[idx] = "AF";
-  cmdArray[idx] = doFilledArc;
-  dscArray[idx] = "Draw a filled arc.\n X - x coordinate of center\n Y - y coordinate of center\n W - width\n H - height\n A - start angle\n B - end angle\n C - arc color\n S - style index.\n";
-  idx++;
-
-  tagArray[idx] = "EF";
-  cmdArray[idx] = doFilledEllipse;
-  dscArray[idx] = "Draw a filled ellipse.\n X - x coordinate of center\n Y - y coordinate of center\n W - width\n H - height\n C - ellipse color.\n";
+  tagArray[idx] = "VE";
+  cmdArray[idx] = version;
+  dscArray[idx] = "Print version number.\n";
   idx++;
 
   tagArray[idx] = "VI";
@@ -680,21 +730,6 @@ void initFunctions() {
   tagArray[idx] = "VO";
   cmdArray[idx] = doViewportOff;
   dscArray[idx] = "Disable viewport (revert to image coordinates).\n";
-  idx++;
-
-  tagArray[idx] = "LD";
-  cmdArray[idx] = doLoad;
-  dscArray[idx] = "Load image from a file.\n S - filename of image to be read.\n";
-  idx++;
-
-  tagArray[idx] = "SS";
-  cmdArray[idx] = doSetStyle;
-  dscArray[idx] = "Set line style (-1 = transparent).\n N - number of colors in style\n C1 - first color\n C2 - second color\n ...\n";
-  idx++;
-
-  tagArray[idx] = "TH";
-  cmdArray[idx] = doSetThickness;
-  dscArray[idx] = "Set line thickness.\n T - thickness in pixels.\n";
   idx++;
 
   ncommands = idx;
