@@ -399,16 +399,14 @@ void doFTString(FILE *stream) {
   x = getFloat(stream);
   y = getFloat(stream);
   c = getColor(getNumber(stream));
-  a = getNumber(stream);
-  p = getFloat(stream);
-  d = getFloat(stream);
+  a = getNumber(stream); // anchor
+  p = getFloat(stream); // point size
+  d = getFloat(stream); // angle
   getLine(stream);
 
   // Convert angle to radians
 
   d = (d * (22.0 / 7.0)) / 180.0;
-
-  // compute anchor position here
 
   if (currentFontIdx == 0) {
     point.x = viewx(x);
@@ -601,6 +599,55 @@ void doSetThickness(FILE *stream) {
   gdImageSetThickness(image, t);
 }
 
+/* Special purpose */
+
+void doGene(FILE *stream) {
+  int i, start, end, rstart, rend, y, strand, nsmall, nlarge, color;
+  int *small, *large;
+
+  start  = getNumber(stream);
+  end    = getNumber(stream);
+  y      = getNumber(stream);
+  strand = getNumber(stream);	/* 0, 1, or -1 */
+  color  = getNumber(stream);
+  
+  rstart = viewx(start);
+  rend   = viewx(end);
+  y      = viewy(y);
+
+  gdImageLine(image, rstart, y, rend, y, color);
+  if (strand == 1) {
+    for (i = rstart+2; i < rend-2; i = i+5) {
+      gdImageSetPixel(image, i, y-1, color);
+      gdImageSetPixel(image, i-1, y-2, color);
+      gdImageSetPixel(image, i, y+1, color);
+      gdImageSetPixel(image, i-1, y+2, color);
+    }
+  } else if (strand == -1) {
+    for (i = rstart+2; i < rend-2; i = i+5) {
+      gdImageSetPixel(image, i, y-1, color);
+      gdImageSetPixel(image, i+1, y-2, color);
+      gdImageSetPixel(image, i, y+1, color);
+      gdImageSetPixel(image, i+1, y+2, color);
+    }
+  }
+  
+  nsmall = getNumber(stream);
+  for (i = 0; i < nsmall; i++) {
+    start = getNumber(stream);
+    end   = getNumber(stream);
+    gdImageFilledRectangle(image, viewx(start), y-4, viewx(end), y+4, color);
+  }
+
+  nlarge = getNumber(stream);
+  for (i = 0; i < nlarge; i++) {
+    start = getNumber(stream);
+    end   = getNumber(stream);
+    gdImageFilledRectangle(image, viewx(start), y-6, viewx(end), y+6, color);
+  }
+}
+    
+
 /* Codes and functions */
 
 void initFunctions() {
@@ -649,6 +696,11 @@ void initFunctions() {
   tagArray[idx] = "FI";
   cmdArray[idx] = doFill;
   dscArray[idx] = "Fill a region with the specified color.\n X - x coordinate of seed point\n Y - y coordinate of seed point\n C - fill color.\n";
+  idx++;
+
+  tagArray[idx] = "GE";
+  cmdArray[idx] = doGene;
+  dscArray[idx] = "Draw a gene structure.\n L - leftmost position of gene\n R - rightmost position of gene\n Y - y position \n S - strand (0, 1, -1)\n C - color\n NS - number of small boxes (non-coding exons)\n ";
   idx++;
 
   tagArray[idx] = "LD";
