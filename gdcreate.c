@@ -319,6 +319,18 @@ void doPixel(FILE *stream) {
   gdImageSetPixel(image, viewx(x), viewy(y), c);
 }
 
+void doDot(FILE *stream) {
+  float x, y;
+  int size, c, rx, ry;
+  x = getFloat(stream);
+  y = getFloat(stream);
+  size = getNumber(stream);
+  c = getColor(getNumber(stream));
+  rx = viewx(x);
+  ry = viewy(y);
+  gdImageFilledRectangle(image, rx-size, ry-size, rx+size, ry+size, c);
+}
+
 void doLine(FILE *stream) {
   float x1, y1, x2, y2;
   int c;
@@ -363,6 +375,7 @@ void doSetFont(FILE *stream) {
   if (f == 0) {
     getLine(stream);
     strcpy(currentFontFT, buffer);
+    // fprintf(stderr, "Current font set to: %s\n", currentFontFT);
   } else {
     currentFont = getFont(f);
   }
@@ -413,7 +426,7 @@ void doFTString(FILE *stream) {
     point.y = viewy(y);
     gdImageStringFT(NULL, brect, c, currentFontFT, p, d, point.x, point.y, buffer);
     point = stringAnchorFT(point, brect, a);
-    // printf("Printing at %d, %d\n", point.x, point.y);
+    // fprintf(stderr, "Printing %d chars at %d, %d\n", strlen(buffer), point.x, point.y);
     gdImageStringFT(image, brect, c, currentFontFT, p, d, point.x, point.y, buffer);
     /*
     points[0].x = brect[0];
@@ -615,6 +628,8 @@ void doGene(FILE *stream) {
   rend   = viewx(end);
   y      = viewy(y);
 
+  // fprintf(stderr, "%d->%d, %d->%d\n", start, rstart, end, rend);
+
   gdImageLine(image, rstart, y, rend, y, color);
   if (strand == 1) {
     for (i = rstart+2; i < rend-2; i = i+5) {
@@ -643,6 +658,7 @@ void doGene(FILE *stream) {
   for (i = 0; i < nlarge; i++) {
     start = getNumber(stream);
     end   = getNumber(stream);
+    fprintf(stderr, "%d->%d, %d->%d\n", start, viewx(start), end, viewx(end));
     gdImageFilledRectangle(image, viewx(start), y-6, viewx(end), y+6, color);
   }
 }
@@ -681,6 +697,11 @@ void initFunctions() {
   tagArray[idx] = "CR";
   cmdArray[idx] = doCreate;
   dscArray[idx] = "Create new image with specified dimensions.\n W - image width\n H - image height\n";
+  idx++;
+
+  tagArray[idx] = "DO";
+  cmdArray[idx] = doDot;
+  dscArray[idx] = "Draw a dot with the specified size.\n X - x coordinate\n Y - y coordinate\n S - size of dot\n C - color.\n";
   idx++;
 
   tagArray[idx] = "EF";
