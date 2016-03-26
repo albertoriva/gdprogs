@@ -272,6 +272,7 @@ void doColorAllocate(FILE *stream) {
   b = getNumber(stream);
   // idx = gdImageColorAllocate(image, r, g, b);
   idx = gdImageColorResolve(image, r, g, b);
+  fprintf(stderr, "(%d, %d, %d) -> %d\n", r, g, b, idx);
   colors[colorptr] = idx;
   colorptr++;
   sprintf(cmdresult, "%d", idx);
