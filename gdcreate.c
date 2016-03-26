@@ -20,7 +20,7 @@ int bbw, bbh;               // size of viewport bounding box
 float vpx1, vpy1, vpx2, vpy2; // coordinates of viewport (virtual)
 
 #define MAXCOLOR 256
-int colors[MAXCOLOR];
+int colors[BUFSIZE];
 int colorptr = 0;
 
 gdImagePtr image;
@@ -261,6 +261,7 @@ void doSave(FILE *stream) {
   getLine(stream); // read filename
   gdSaveByExt(image, buffer);
   gdImageDestroy(image);
+  colorptr = 0;
   //printf("(image saved to %s) ", buffer);
 }
 
@@ -272,7 +273,7 @@ void doColorAllocate(FILE *stream) {
   b = getNumber(stream);
   // idx = gdImageColorAllocate(image, r, g, b);
   idx = gdImageColorResolve(image, r, g, b);
-  fprintf(stderr, "(%d, %d, %d) -> %d\n", r, g, b, idx);
+  // fprintf(stderr, "(%d, %d, %d) -> %d\n", r, g, b, idx);
   colors[colorptr] = idx;
   colorptr++;
   sprintf(cmdresult, "%d", idx);
