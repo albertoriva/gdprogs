@@ -658,7 +658,7 @@ void doGene(FILE *stream) {
   for (i = 0; i < nlarge; i++) {
     start = getNumber(stream);
     end   = getNumber(stream);
-    fprintf(stderr, "%d->%d, %d->%d\n", start, viewx(start), end, viewx(end));
+    // fprintf(stderr, "%d->%d, %d->%d\n", start, viewx(start), end, viewx(end));
     gdImageFilledRectangle(image, viewx(start), y-6, viewx(end), y+6, color);
   }
 }
