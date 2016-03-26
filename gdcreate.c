@@ -270,7 +270,8 @@ void doColorAllocate(FILE *stream) {
   r = getNumber(stream);
   g = getNumber(stream);
   b = getNumber(stream);
-  idx = gdImageColorAllocate(image, r, g, b);
+  // idx = gdImageColorAllocate(image, r, g, b);
+  idx = gdImageColorResolve(image, r, g, b);
   colors[colorptr] = idx;
   colorptr++;
   sprintf(cmdresult, "%d", idx);
