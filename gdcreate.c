@@ -20,7 +20,7 @@ int bbw, bbh;               // size of viewport bounding box
 float vpx1, vpy1, vpx2, vpy2; // coordinates of viewport (virtual)
 
 #define MAXCOLOR 256
-int colors[MAXCOLOR];
+int colors[BUFSIZE];
 int colorptr = 0;
 
 gdImagePtr image;
@@ -261,6 +261,7 @@ void doSave(FILE *stream) {
   getLine(stream); // read filename
   gdSaveByExt(image, buffer);
   gdImageDestroy(image);
+  colorptr = 0;
   //printf("(image saved to %s) ", buffer);
 }
 
@@ -270,7 +271,9 @@ void doColorAllocate(FILE *stream) {
   r = getNumber(stream);
   g = getNumber(stream);
   b = getNumber(stream);
-  idx = gdImageColorAllocate(image, r, g, b);
+  // idx = gdImageColorAllocate(image, r, g, b);
+  idx = gdImageColorResolve(image, r, g, b);
+  // fprintf(stderr, "(%d, %d, %d) -> %d\n", r, g, b, idx);
   colors[colorptr] = idx;
   colorptr++;
   sprintf(cmdresult, "%d", idx);
@@ -319,6 +322,18 @@ void doPixel(FILE *stream) {
   gdImageSetPixel(image, viewx(x), viewy(y), c);
 }
 
+void doManyPixels(FILE *stream) {
+  float x, y;
+  int npix, c, i;
+  npix = getNumber(stream);
+  c = getColor(getNumber(stream));
+  for (i = 0; i < npix; i++) {
+    x = getFloat(stream);
+    y = getFloat(stream);
+    gdImageSetPixel(image, viewx(x), viewy(y), c);
+  }
+}
+
 void doDot(FILE *stream) {
   float x, y;
   int size, c, rx, ry;
@@ -329,6 +344,21 @@ void doDot(FILE *stream) {
   rx = viewx(x);
   ry = viewy(y);
   gdImageFilledRectangle(image, rx-size, ry-size, rx+size, ry+size, c);
+}
+
+void doManyDots(FILE *stream) {
+  float x, y;
+  int size, c, rx, ry, ndots, i;
+  ndots = getNumber(stream);
+  size = getNumber(stream);
+  c = getColor(getNumber(stream));
+  for (i = 0; i < ndots; i++) {
+    x = getFloat(stream);
+    y = getFloat(stream);
+    rx = viewx(x);
+    ry = viewy(y);
+    gdImageFilledRectangle(image, rx-size, ry-size, rx+size, ry+size, c);
+  }
 }
 
 void doLine(FILE *stream) {
@@ -658,7 +688,7 @@ void doGene(FILE *stream) {
   for (i = 0; i < nlarge; i++) {
     start = getNumber(stream);
     end   = getNumber(stream);
-    //fprintf(stderr, "%d->%d, %d->%d\n", start, viewx(start), end, viewx(end));
+    // fprintf(stderr, "%d->%d, %d->%d\n", start, viewx(start), end, viewx(end));
     gdImageFilledRectangle(image, viewx(start), y-6, viewx(end), y+6, color);
   }
 }
@@ -704,6 +734,11 @@ void initFunctions() {
   dscArray[idx] = "Draw a dot with the specified size.\n X - x coordinate\n Y - y coordinate\n S - size of dot\n C - color.\n";
   idx++;
 
+  tagArray[idx] = "D*";
+  cmdArray[idx] = doManyDots;
+  dscArray[idx] = "Draw several dots with the specified size and color.\n N - number of dots\n S - size of dots\n C - color.\n X - x coordinate of first dot\n Y - y coordinate of first dot\n ...\n";
+  idx++;
+
   tagArray[idx] = "EF";
   cmdArray[idx] = doFilledEllipse;
   dscArray[idx] = "Draw a filled ellipse.\n X - x coordinate of center\n Y - y coordinate of center\n W - width\n H - height\n C - ellipse color.\n";
@@ -742,6 +777,11 @@ void initFunctions() {
   tagArray[idx] = "PI";
   cmdArray[idx] = doPixel;
   dscArray[idx] = "Draw a pixel.\n X - x coordinate of pixel\n Y - y coordinate of pixel\n C - pixel color\n";
+  idx++;
+
+  tagArray[idx] = "P*";
+  cmdArray[idx] = doManyPixels;
+  dscArray[idx] = "Draw several pixels in the same color.\n N - number of pixels to draw\n C - pixel color\n X - x coordinate of first pixel\n Y - y coordinate of first pixel\n ...\n";
   idx++;
 
   tagArray[idx] = "PO";
@@ -873,7 +913,7 @@ void listCommands() {
   int i;
   fprintf(stderr, "Each command starts with a two-letter code, followed by one or more arguments. The\n");
   fprintf(stderr, "code and its arguments should all be on different, consecutive lines. An empty line\n");
-  fprintf(stderr, "terminates a command. The following is the list of currently available commands,\n");
+  fprintf(stderr, "terminates a command. The following is the list of the %d currently available commands,\n", ncommands);
   fprintf(stderr, "followed by the arguments for each command.\n\n");
 
   for (i = 0; i < ncommands; i++) {
