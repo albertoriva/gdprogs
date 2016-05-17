@@ -1,5 +1,5 @@
 CC=	gcc
-LIBS=	-lm -lgd
+LIBS=	-lm -lgd -L$(HPC_LIBGD_LIB)
 
 all:	gdresize gdcreate gdcrop credits
 
