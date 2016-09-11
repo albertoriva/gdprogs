@@ -33,7 +33,7 @@ extern gdFontPtr gdFontMediumBold;
 extern gdFontPtr gdFontLarge;
 extern gdFontPtr gdFontGiant;
 
-int currentFontIdx;		/* If 0, font is FT */
+int currentFontIdx = 1;		/* If 0, font is FT */
 gdFontPtr currentFont;
 char currentFontFT[BUFSIZE];
 
