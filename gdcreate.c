@@ -603,7 +603,7 @@ void doFilledEllipse(FILE *stream) {
 
 void doArrow(FILE *stream) {
   float x1, y1, x2, y2;
-  int size, c;
+  int vx, vy, size, c;
   gdPoint triangle[3];
 
   x1 = getFloat(stream);
@@ -612,32 +612,34 @@ void doArrow(FILE *stream) {
   y2 = getFloat(stream);
   size = getNumber(stream);
   c = getColor(getNumber(stream));
-  triangle[0].x = viewx(x2);
-  triangle[0].y = viewy(y2);
-  gdImageLine(image, viewx(x1), viewy(y1), viewx(x2), viewy(y2), c);
+  vx = viewx(x2);
+  vy = viewy(y2);
+  triangle[0].x = vx;
+  triangle[0].y = vy;
+  gdImageLine(image, viewx(x1), viewy(y1), vx, vy, c);
   if (y1 == y2) {
     if (x2 > x1) {		/* horizontal, pointing right */
-      triangle[1].x = x2 - size;
-      triangle[1].y = y2 - size;
-      triangle[2].x = x2 - size;
-      triangle[2].y = y2 + size;
+      triangle[1].x = vx - size;
+      triangle[1].y = vy - size;
+      triangle[2].x = vx - size;
+      triangle[2].y = vy + size;
     } else {		/* horizontal, pointing left */
-      triangle[1].x = x2 + size;
-      triangle[1].y = y2 - size;
-      triangle[2].x = x2 + size;
-      triangle[2].y = y2 + size;
+      triangle[1].x = vx + size;
+      triangle[1].y = vy - size;
+      triangle[2].x = vx + size;
+      triangle[2].y = vy + size;
     }
   } else {
     if (y2 > y1) {		/* vertical, pointing up */
-      triangle[1].x = x2 - size;
-      triangle[1].y = y2 - size;
-      triangle[2].x = x2 + size;
-      triangle[2].y = y2 - size;
+      triangle[1].x = vx - size;
+      triangle[1].y = vy - size;
+      triangle[2].x = vx + size;
+      triangle[2].y = vy - size;
     } else {		/* horizontal, pointing left */
-      triangle[1].x = x2 - size;
-      triangle[1].y = y2 + size;
-      triangle[2].x = x2 + size;
-      triangle[2].y = y2 + size;
+      triangle[1].x = vx - size;
+      triangle[1].y = vy + size;
+      triangle[2].x = vx + size;
+      triangle[2].y = vy + size;
     }
   }
   gdImageFilledPolygon(image, triangle, 3, c);
