@@ -601,6 +601,48 @@ void doFilledEllipse(FILE *stream) {
 		       scalex(w), scaley(h), c);
 }
 
+void doArrow(FILE *stream) {
+  float x1, y1, x2, y2;
+  int size, c;
+  gdPoint triangle[3];
+
+  x1 = getFloat(stream);
+  y1 = getFloat(stream);
+  x2 = getFloat(stream);
+  y2 = getFloat(stream);
+  size = getNumber(stream);
+  c = getColor(getNumber(stream));
+  triangle[0].x = viewx(x2);
+  triangle[0].y = viewy(y2);
+  gdImageLine(image, viewx(x1), viewy(y1), viewx(x2), viewy(y2), c);
+  if (y1 == y2) {
+    if (x2 > x1) {		/* horizontal, pointing right */
+      triangle[1].x = x2 - size;
+      triangle[1].y = y2 - size;
+      triangle[2].x = x2 - size;
+      triangle[2].y = y2 + size;
+    } else {		/* horizontal, pointing left */
+      triangle[1].x = x2 + size;
+      triangle[1].y = y2 - size;
+      triangle[2].x = x2 + size;
+      triangle[2].y = y2 + size;
+    }
+  } else {
+    if (y2 > y1) {		/* vertical, pointing up */
+      triangle[1].x = x2 - size;
+      triangle[1].y = y2 - size;
+      triangle[2].x = x2 + size;
+      triangle[2].y = y2 - size;
+    } else {		/* horizontal, pointing left */
+      triangle[1].x = x2 - size;
+      triangle[1].y = y2 + size;
+      triangle[2].x = x2 + size;
+      triangle[2].y = y2 + size;
+    }
+  }
+  gdImageFilledPolygon(image, triangle, 3, c);
+}
+
 void doViewportOn(FILE *stream) {
 
   bbx1 = getNumber(stream);
@@ -707,6 +749,11 @@ void initFunctions() {
   tagArray[idx] = "AF";
   cmdArray[idx] = doFilledArc;
   dscArray[idx] = "Draw a filled arc.\n X - x coordinate of center\n Y - y coordinate of center\n W - width\n H - height\n A - start angle\n B - end angle\n C - arc color\n S - style index.\n";
+  idx++;
+
+  tagArray[idx] = "AW";
+  cmdArray[idx] = doArrow;
+  dscArray[idx] = "Draw an arrow from (x1, y1) to (x2, y2) [note: only horizontal or vertical for now].\n X1 - x1 coordinate\n Y1 - y1 coordinate\n X2 - x2 coordinate\n Y2 - y2 coordinate\n S - arrowhead size\n C - line color.\n";
   idx++;
 
   tagArray[idx] = "CA";
@@ -914,7 +961,7 @@ void listCommands() {
   fprintf(stderr, "Each command starts with a two-letter code, followed by one or more arguments. The\n");
   fprintf(stderr, "code and its arguments should all be on different, consecutive lines. An empty line\n");
   fprintf(stderr, "terminates a command. The following is the list of the %d currently available commands,\n", ncommands);
-  fprintf(stderr, "followed by the arguments for each command.\n\n");
+  fprintf(stderr, "in alphabetical order, followed by the arguments for each command.\n\n");
 
   for (i = 0; i < ncommands; i++) {
     fprintf(stderr, "%s - %s\n", tagArray[i], dscArray[i]);
