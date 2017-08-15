@@ -11,18 +11,6 @@ int sizeonly = 1;
 int shortFormat = 0;
 float xscale = 0.0, yscale = 0.0, scale = 0.0;
 
-float is_perc(char *s) {
-  size_t l;
-
-  l = strlen(s);
-  if (s[l-1] == '%') {
-    s[l-1] = '\0';
-    return atoi(s)/100.0;
-  } else {
-    return 0.0;
-  }
-}
-
 int is_dash(char *s) {
   return !strcmp(s, "-");
 }

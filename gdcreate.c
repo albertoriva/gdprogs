@@ -235,7 +235,8 @@ int getColor(int idx) {
   if (idx == -1) {
     return gdStyled;
   } else {
-    return colors[idx];
+    //return colors[idx];
+    return idx;
   }
 }
 
@@ -273,7 +274,7 @@ void doColorAllocate(FILE *stream) {
   b = getNumber(stream);
   // idx = gdImageColorAllocate(image, r, g, b);
   idx = gdImageColorResolve(image, r, g, b);
-  // fprintf(stderr, "(%d, %d, %d) -> %d\n", r, g, b, idx);
+  // fprintf(stderr, "(%d, %d, %d) -> %d [%d]\n", r, g, b, idx, colorptr);
   colors[colorptr] = idx;
   colorptr++;
   sprintf(cmdresult, "%d", idx);

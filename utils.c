@@ -60,3 +60,16 @@ void gdSaveByExt(gdImagePtr im_out, char *filename) {
   }
   fclose(out);
 }
+
+float is_perc(char *s) {
+  size_t l;
+
+  l = strlen(s);
+  if (s[l-1] == '%') {
+    s[l-1] = '\0';
+    return atoi(s)/100.0;
+  } else {
+    return 0.0;
+  }
+}
+
